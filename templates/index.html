@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Audio Upload</title>
+</head>
+<body>
+    <h2>Upload Audio</h2>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="audio" id="audio" accept="audio/*" required>
+        <button type="submit">Upload & Play</button>
+    </form>
+</body>
+</html>
