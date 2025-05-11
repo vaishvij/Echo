@@ -1,1 +1,7 @@
 flask
+torch
+torchaudio
+numpy
+ffmpeg-python
+pydub
+demucs
