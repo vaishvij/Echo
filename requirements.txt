@@ -5,3 +5,4 @@ numpy
 ffmpeg-python
 pydub
 demucs
+resemblyzer
