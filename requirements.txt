@@ -6,3 +6,4 @@ ffmpeg-python
 pydub
 demucs
 resemblyzer
+TTS==0.22.0

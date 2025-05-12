@@ -5,8 +5,23 @@ import shutil
 from resemblyzer import VoiceEncoder, preprocess_wav
 import numpy as np
 
+import torch
+from torch.serialization import add_safe_globals
+
+# All required classes for XTTS checkpoint loading
+from TTS.tts.configs.xtts_config import XttsConfig
+from TTS.tts.models.xtts import XttsAudioConfig, XttsArgs
+from TTS.config.shared_configs import BaseDatasetConfig
+
+# Allowlist all XTTS-related config classes
+add_safe_globals([XttsConfig, XttsAudioConfig, BaseDatasetConfig, XttsArgs])
+
+from TTS.api import TTS
+
 import torchaudio
 torchaudio.set_audio_backend("soundfile")
+
+tts_model = TTS(model_name="tts_models/multilingual/multi-dataset/xtts_v2", progress_bar=False, gpu=False)
 
 def process_audio(input_path, output_path):
     temp_wav = input_path.replace(".wav", "_converted.wav")
@@ -54,3 +69,16 @@ def extract_speaker_embedding(enhanced_audio_path, save_embedding_path):
 
     # Save the embedding to disk
     np.save(save_embedding_path, embedding)
+
+
+def clone_voice_from_text(text_input, enhanced_audio_path, embedding_path, output_path):
+    #Load the saved speaker embedding
+    speaker_embedding = np.load(embedding_path)
+
+    #Generate cloned voice audio file
+    tts_model.tts_to_file(
+        text = text_input,
+        speaker_wav = enhanced_audio_path,
+        file_path = output_path,
+        language="en"
+    )
