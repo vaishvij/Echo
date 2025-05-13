@@ -1,8 +1,10 @@
-from flask import Flask, request, render_template, send_file, send_from_directory
+from flask import Flask, request, render_template, send_file, send_from_directory, jsonify
 import os
 import uuid
-from utils.processing import process_audio
-from utils.processing import clone_voice_from_text
+from utils.audio_processing import process_audio
+from utils.audio_processing import clone_voice_from_text
+from utils.save_description import save_person_description
+from utils.prompting import generate_system_prompt
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
@@ -77,6 +79,41 @@ def synthesize():
         <br><br>
         <a href="/">Clone Another</a>
     """
+
+
+@app.route('/description')
+def description_form():
+    return render_template("description.html")
+
+@app.route('/save_description', methods=['POST'])
+def save_description():
+    person_id = request.form['person_id']
+    relationship = request.form['relationship']
+    language = request.form['language']
+    personality = request.form['personality'].split(",")
+    memories = request.form['memories'].strip().splitlines()
+    phrases = request.form['phrases'].strip().splitlines()
+
+    profile_data = {
+        "person_id": person_id,
+        "relationship": relationship,
+        "language": language,
+        "personality": [trait.strip() for trait in personality],
+        "memories": memories,
+        "phrases": phrases
+    }
+
+    save_person_description(person_id, profile_data)
+
+    return f"<h3>Profile Saved for {person_id}!</h3><a href='/description'>Create Another</a> | <a href='/'>Home</a>"
+
+
+@app.route('/preview_prompt/<person_id>')
+def preview_prompt(person_id):
+    prompt = generate_system_prompt(person_id)
+    return f"<pre>{prompt}</pre>"
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
