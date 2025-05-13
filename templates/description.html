@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Memory Profile</title>
+</head>
+<body>
+    <h2>Create Emotional Memory Profile</h2>
+    <form action="/save_description" method="post">
+        <label>Person's Name:</label><br>
+        <input type="text" name="person_id" required><br><br>
+
+        <label>Relationship (e.g. Papa, Nani):</label><br>
+        <input type="text" name="relationship" required><br><br>
+
+        <label>Preferred Language:</label><br>
+        <select name="language" required>
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="esp">Spanish</option>
+        </select><br><br>
+
+        <label>Personality Traits (comma separated):</label><br>
+        <input type="text" name="personality" required><br><br>
+
+        <label>Memory Snippets (one per line):</label><br>
+        <textarea name="memories" rows="8" cols="80" required></textarea><br><br>
+
+        <label>Favorite Phrases (one per line):</label><br>
+        <textarea name="phrases" rows="8" cols="80" required></textarea><br><br>
+
+        <button type="submit">Save Description</button>
+    </form>
+    <br>
+    <a href="/">Go Back</a>
+</body>
+</html>
