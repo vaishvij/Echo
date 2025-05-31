@@ -7,3 +7,6 @@ pydub
 demucs
 resemblyzer
 TTS==0.22.0
+requests
+transformers
+accelerate

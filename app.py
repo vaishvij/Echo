@@ -4,7 +4,10 @@ import uuid
 from utils.audio_processing import process_audio
 from utils.audio_processing import clone_voice_from_text
 from utils.save_description import save_person_description
-from utils.prompting import generate_system_prompt
+from utils.prompting import generate_system_prompt, query_llm
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
@@ -105,7 +108,12 @@ def save_description():
 
     save_person_description(person_id, profile_data)
 
-    return f"<h3>Profile Saved for {person_id}!</h3><a href='/description'>Create Another</a> | <a href='/'>Home</a>"
+    return f"""
+        <h3>Profile Saved for {person_id}!</h3>
+        <a href="/start_chat/{person_id}">Start Chat</a> |
+        <a href='/description'>Create Another</a> |
+        <a href='/'>Home</a>
+    """
 
 
 @app.route('/preview_prompt/<person_id>')
@@ -113,6 +121,38 @@ def preview_prompt(person_id):
     prompt = generate_system_prompt(person_id)
     return f"<pre>{prompt}</pre>"
 
+
+chat_history = {}
+
+@app.route('/start_chat/<person_id>')
+def start_chat(person_id):
+    return render_template("chat.html", person_id=person_id)
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.json
+    person_id = data.get("person_id")
+    user_input = data.get("message")
+
+    print(f"[DEBUG] Received person_id: {person_id}")
+    print(f"[DEBUG] Message: {user_input}")
+
+    # Load system prompt
+    system_prompt = generate_system_prompt(person_id)
+
+    # Maintain history
+    if person_id not in chat_history:
+        chat_history[person_id] = []
+
+    history = chat_history[person_id]
+
+    response = query_llm(system_prompt, user_input, history)
+
+    # Update chat history
+    chat_history[person_id].append({"role": "user", "content": user_input})
+    chat_history[person_id].append({"role": "assistant", "content": response})
+
+    return jsonify({"reply": response})
 
 
 if __name__ == '__main__':

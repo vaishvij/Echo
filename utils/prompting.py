@@ -1,5 +1,7 @@
 import os
 import json
+import requests
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 DESCRIPTION_FOLDER = "person_description"
 
@@ -42,3 +44,28 @@ def generate_system_prompt(person_id):
     Use warm, emotionally intelligent, short replies. Never say you're an AI or a chatbot.
     """
     return prompt
+
+
+# Load Mistral locally
+print("[INFO] Loading OpenHermes-2.5-Mistral-7B...")
+
+model_id = "teknium/OpenHermes-2.5-Mistral-7B"
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto")
+chat_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer)
+
+def query_llm(system_prompt, user_input, history=[]):
+    prompt = f"<|system|>\n{system_prompt}\n"
+
+    for turn in history:
+        if turn["role"] == "user":
+            prompt += f"<|user|>\n{turn['content']}\n"
+        elif turn["role"] == "assistant":
+            prompt += f"<|assistant|>\n{turn['content']}\n"
+
+    prompt += f"<|user|>\n{user_input}\n<|assistant|>\n"
+
+    output = chat_pipeline(prompt, max_new_tokens=256, do_sample=True, temperature=0.7)[0]["generated_text"]
+    reply = output.split("<|assistant|>\n")[-1].strip()
+
+    return reply

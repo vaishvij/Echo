@@ -1,0 +1,49 @@
+<!-- templates/chat.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat with Loved One</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        #chat-box { border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: scroll; background: #f9f9f9; }
+        .user { color: blue; }
+        .bot { color: green; }
+    </style>
+</head>
+<body>
+    <h2>Chat with {{ person_id }}</h2>
+    <div id="chat-box"></div>
+    <br>
+    <form id="chat-form">
+        <input type="text" id="user-input" placeholder="Type your message..." size="60" required>
+        <input type="hidden" id="person-id" value="{{ person_id }}">
+        <button type="submit">Send</button>
+    </form>
+
+    <script>
+        const form = document.getElementById("chat-form");
+        const chatBox = document.getElementById("chat-box");
+        const personId = document.getElementById("person-id").value;
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const input = document.getElementById("user-input");
+            const userMessage = input.value.trim();
+            if (!userMessage) return;
+
+            chatBox.innerHTML += `<div class="user"><strong>You:</strong> ${userMessage}</div>`;
+            input.value = "";
+
+            const res = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: userMessage, person_id: personId })
+            });
+            const data = await res.json();
+            chatBox.innerHTML += `<div class="bot"><strong>{{ person_id }}:</strong> ${data.reply}</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        };
+    </script>
+</body>
+</html>
