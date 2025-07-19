@@ -1,47 +1,54 @@
-from flask import Flask, request, render_template, send_file, send_from_directory, jsonify
+from flask import Flask, request, render_template, send_file, send_from_directory, jsonify, redirect, url_for, session
 import os
-import uuid
 from utils.audio_processing import process_audio
 from utils.audio_processing import clone_voice_from_text
+from utils.audio_processing import synthesize_voice
 from utils.save_description import save_person_description
 from utils.prompting import generate_system_prompt, query_llm
+from utils.transcription import transcribe_audio
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return render_template("home.html")
+
+@app.route('/index')
+def index():
+    return render_template("index.html")
+
 UPLOAD_FOLDER = "uploads"
 PROCESSED_FOLDER = "processed"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER,exist_ok=True)
 
-@app.route('/')
-def index():
-    return render_template("index.html")
-
 @app.route('/upload', methods=['POST'])
 def upload_audio():
     audio = request.files['audio']
-    filename = f"{uuid.uuid4()}.wav"
+    person_id = request.form['person_id'].strip()
+    filename = f"{person_id}.wav"
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     audio.save(filepath)
-    processed_filename = f"processed_{filename}"
-    processed_path = os.path.join(PROCESSED_FOLDER, processed_filename)
+    
+    processed_path = os.path.join(PROCESSED_FOLDER, filename)
     process_audio(filepath,processed_path)
 
     return f"""
-        <h2>Here’s your audio:</h2>
+        <h2>Here’s your audio for ({person_id}):</h2>
         <audio controls autoplay>
             <source src="/uploads/{filename}" type="audio/wav">
         </audio>
         <br><br>
         <h2>Enhanced Audio:</h2>
         <audio controls autoplay>
-            <source src="/processed/{processed_filename}" type="audio/wav">
+            <source src="/processed/{filename}" type="audio/wav">
         </audio>
         <br><br>
         <form action="/synthesize" method="post">
-            <input type="hidden" name="processed_audio" value="{processed_filename}">
+            <input type="hidden" name="person_id" value="{person_id}">
             <label>Enter text to synthesize in the uploaded voice:</label><br>
             <textarea name="text" rows="3" cols="60" required></textarea><br><br>
             <button type="submit">Generate Cloned Voice</button>
@@ -60,12 +67,12 @@ def get_processed_audio(filename):
 @app.route('/synthesize', methods=['POST'])
 def synthesize():
     text_input = request.form['text']
-    processed_audio = request.form['processed_audio']
+    person_id = request.form['person_id']
 
-    processed_path = os.path.join(PROCESSED_FOLDER, processed_audio)
+    processed_path = os.path.join(PROCESSED_FOLDER,f"{person_id}.wav")
     embedding_path = processed_path.replace(".wav",".npy")
 
-    output_filename = f"cloned_{uuid.uuid4()}.wav"
+    output_filename = f"{person_id}.wav"
     output_path = os.path.join(PROCESSED_FOLDER, output_filename)
 
     #Generate speech in cloned voice
@@ -82,7 +89,6 @@ def synthesize():
         <br><br>
         <a href="/">Clone Another</a>
     """
-
 
 @app.route('/description')
 def description_form():
@@ -126,7 +132,7 @@ chat_history = {}
 
 @app.route('/start_chat/<person_id>')
 def start_chat(person_id):
-    return render_template("chat.html", person_id=person_id)
+    return render_template("textchat.html", person_id=person_id)
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -153,6 +159,41 @@ def chat():
     chat_history[person_id].append({"role": "assistant", "content": response})
 
     return jsonify({"reply": response})
+
+@app.route("/voice_chat/<person_id>")
+def voice_chat(person_id):
+    display_name = person_id.replace("_", " ").title()  # For UI
+    return render_template("voicechat.html", person_id=person_id, display_name=display_name)
+
+@app.route('/voice_input', methods=['POST'])
+def voice_input():
+    try:
+        audio_file = request.files['audio']
+        person_id = request.form.get('person_id')
+        print(f"Received audio for: {person_id}")
+
+        audio_path = os.path.join("uploads", "temp_input.wav")
+        audio_file.save(audio_path)
+        print("Audio saved.")
+
+        text_input = transcribe_audio(audio_path)
+        print(f"Transcribed text: {text_input}")
+
+        system_prompt = generate_system_prompt(person_id)
+        response_text = query_llm(system_prompt, text_input)
+        print(f"Response text: {response_text}")
+
+        audio_response_path = synthesize_voice(response_text, person_id)
+        print(f"Audio response path: {audio_response_path}")
+
+        return jsonify({
+            "text": response_text,
+            "audio_url": f"/static/audio_responses/{os.path.basename(audio_response_path)}"
+        })
+
+    except Exception as e:
+        print("Error in /voice_input:", str(e))
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':

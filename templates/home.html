@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='homeStyle.css') }}">
+</head>
+<body>
+    <header id="header">
+        <span class="logo">
+            <i class="fa-regular fa-heart"></i>
+            <p>Echo</p>
+        </span>
+        <nav class="navbar">
+            <a href="#features-section">Features</a>
+            <a href="#howWorks-section">How It Works</a>
+            <a href="#security-section">Security</a>
+            <a href="#contact-section">Contact</a>
+        </nav>
+        <span class="nav_btns">
+            <button class="signIn">Sign In</button>
+            <button class="getStarted">Get Started</button>
+        </span>
+    </header>
+
+    <!--Hero Section-->
+    <div class="hero">
+        <div class="tag">AI-Powered Emotional Support</div>
+        <h1 class="hero-title">Stay Connected to the Voices that matter the Most</h1>
+        <h3 class="hero-subtext">Our AI companion helps you cope and heal by recreating conversations with loved ones, providing comfort when you need it most.</h3>
+        <div class="home_btns">
+            <a href="/index"><button class="primary-btn">Start Your Journey</button></a>
+            <button class="secondary-btn">Watch Demo</button>
+        </div>
+    </div>
+
+    <!--Features-->
+    <div class="features-section" id="features-section">
+        <h3>Healing Through Connection</h3>
+        <p>Experience the comfort of familiar voices and meaningful conversations</p>
+        <div class="feature-boxes">
+            <span class="fbox">
+                <i class="fa-solid fa-microphone"></i>
+                <h4>Voice Recreation</h4>
+                <p>Advanced AI technology recreates the unique voice patterns and speech characteristics of your loved ones</p>
+            </span>
+            <span class="fbox">
+                <i class="fa-solid fa-hand-holding-heart"></i>
+                <h4>Emotional Support</h4>
+                <p>Get comfort and guidance through difficult times with conversations that feel natural and healing</p>
+            </span>
+            <span class="fbox">
+                <i class="fa-solid fa-clock"></i>
+                <h4>Available 24/7</h4>
+                <p>Your AI companion is always there when you need support, comfort, or just someone to talk to</p>
+            </span>
+        </div>
+    </div>
+
+    <!--How It Works-->
+    <div class="howWorks-section" id="howWorks-section">
+        <h3>Simple Steps to get Connected</h3>
+        <p>Get started in just a few easy steps</p>
+        <div class="steps-container">
+            <div class="step-card">
+                <div class="step-circle">1</div>
+                <h4>Upload Voice Samples</h4>
+                <p>Share audio recordings or memories of your loved one's voice with our secure platform</p>
+            </div>
+            <div class="step-card">
+                <div class="step-circle">2</div>
+                <h4>AI Learning Process</h4>
+                <p>Our advanced AI analyzes and learns the unique characteristics of the voice patterns</p>
+            </div>
+            <div class="step-card">
+                <div class="step-circle">3</div>
+                <h4>Start Conversations</h4>
+                <p>Begin meaningful conversations that provide comfort and emotional support</p>
+            </div>
+        </div>
+    </div>
+
+    <!--Security-->
+    <div class="security-section" id="security-section">
+        <div class="privacy-content">
+            <h3>Your Privacy is Sacred</h3>
+            <p>We understand the deeply personal nature of this service. Your data and memories are protected with enterprise-grade security.</p>
+            <ul class="privacy-list">
+                <li><i class="fa-solid fa-shield-halved"></i> End-to-end encryption for all voice data</li>
+                <li><i class="fa-solid fa-shield-halved"></i> HIPAA-compliant data handling</li>
+                <li><i class="fa-solid fa-shield-halved"></i> Complete data ownership and control</li>
+                <li><i class="fa-solid fa-shield-halved"></i> Regular security audits and updates</li>
+            </ul>
+        </div>
+        <div class="privacy-image">
+            <img src="bc7ee318-671f-4ba9-98a3-76932c8b2f02.070021c9f674f8a2390b6a3f5bb0372da08c4f1e.png" alt="img">
+        </div>
+    </div>
+
+    <!--Contact-->
+    <div class="contact-section" id="contact-section">
+        <h3>Begin Your Healing Journey Today</h3>
+        <p>Take the first step toward finding comfort and connection with the voices that matter most to you.</p>
+        <div class="cta-buttons">
+            <button class="btn-primary">Start Free Trial</button>
+            <input type="text" class="input-box" placeholder="Your email or phone" />
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-col brand">
+                <h2>Echo</h2>
+                <p>Mending humanity through the power of AI.</p>
+            </div>
+            <div class="footer-col">
+                <h3>Product</h3>
+                <ul>
+                    <li><a href="#">Features</a></li>
+                    <li><a href="#">Pricing</a></li>
+                    <li><a href="#">API</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h3>Support</h3>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Contact Us</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h3>Company</h3>
+                <ul>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 Echo. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

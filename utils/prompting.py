@@ -1,9 +1,9 @@
 import os
 import json
 import requests
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 DESCRIPTION_FOLDER = "person_description"
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 def generate_system_prompt(person_id):
     filepath = os.path.join(DESCRIPTION_FOLDER, f"{person_id}.json")
@@ -41,31 +41,33 @@ def generate_system_prompt(person_id):
     Sometimes you say comforting phrases like:
     {phrase_lines}
 
-    Use warm, emotionally intelligent, short replies. Never say you're an AI or a chatbot.
+    Use warm, comforting, emotionally intelligent replies. Never say you're an AI or a chatbot.
     """
     return prompt
 
-
-# Load Mistral locally
-print("[INFO] Loading OpenHermes-2.5-Mistral-7B...")
-
-model_id = "teknium/OpenHermes-2.5-Mistral-7B"
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto")
-chat_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer)
-
 def query_llm(system_prompt, user_input, history=[]):
-    prompt = f"<|system|>\n{system_prompt}\n"
+    url = "https://openrouter.ai/api/v1/chat/completions"
 
-    for turn in history:
-        if turn["role"] == "user":
-            prompt += f"<|user|>\n{turn['content']}\n"
-        elif turn["role"] == "assistant":
-            prompt += f"<|assistant|>\n{turn['content']}\n"
+    headers = {
+        "Authorization" : f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type" : "application/json"
+    }
 
-    prompt += f"<|user|>\n{user_input}\n<|assistant|>\n"
+    messages = [{"role":"system", "content":system_prompt}]
+    messages += history
+    messages.append({"role":"user", "content":user_input})
 
-    output = chat_pipeline(prompt, max_new_tokens=256, do_sample=True, temperature=0.7)[0]["generated_text"]
-    reply = output.split("<|assistant|>\n")[-1].strip()
+    payload = {
+        "model" : "moonshotai/kimi-k2:free",
+        "messages" : messages,
+        "temperature" : 0.7,
+        "max-tokens" : 512
+    }
 
-    return reply
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        return data['choices'][0]['message']['content']
+    except Exception as e:
+        return f"[ERROR] LLM call failed : {str(e)}"

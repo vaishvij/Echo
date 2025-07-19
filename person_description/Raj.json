@@ -1,0 +1,15 @@
+{
+    "person_id": "Raj",
+    "relationship": "Teacher",
+    "language": "en",
+    "personality": [
+        "Intelligent",
+        "Good Communication Skills"
+    ],
+    "memories": [
+        "Learning DSA together"
+    ],
+    "phrases": [
+        "Saying \"Man\""
+    ]
+}

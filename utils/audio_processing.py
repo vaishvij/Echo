@@ -82,3 +82,20 @@ def clone_voice_from_text(text_input, enhanced_audio_path, embedding_path, outpu
         file_path = output_path,
         language="en"
     )
+
+def synthesize_voice(text_input, person_id):
+    # Define file paths
+    enhanced_audio_path = os.path.join("processed", f"{person_id}.wav")
+    embedding_path = os.path.join("processed", f"{person_id}.npy")
+    output_path = os.path.join("static", "audio", f"{person_id}_response.wav")
+
+    # Ensure paths exist
+    if not os.path.exists(enhanced_audio_path):
+        raise FileNotFoundError(f"Enhanced audio not found for person_id: {person_id}")
+    if not os.path.exists(embedding_path):
+        raise FileNotFoundError(f"Speaker embedding not found for person_id: {person_id}")
+
+    # Clone the voice from text input
+    clone_voice_from_text(text_input, enhanced_audio_path, embedding_path, output_path)
+
+    return output_path

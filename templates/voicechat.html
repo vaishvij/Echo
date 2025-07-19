@@ -1,0 +1,103 @@
+<!-- templates/voice_chat.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voice Chat with {{ display_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='voicechatStyle.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="personName">{{ person_id }}</h1>
+            <p>AI Companion • Available</p>
+        </header>
+
+        <div class="mic-area">
+            <div class="mic-icon" id="micBtn"></div>
+            <p>Tap and hold to speak</p>
+        </div>
+
+        <div class="chatbox" id="chatBox">
+            <!-- Messages will appear here -->
+        </div>
+
+        <footer>
+            <button id="micToggle" class="record-btn">🎤 Hold to Talk</button>
+            <p id="statusText">Ready</p>
+        </footer>
+    </div>
+
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        const micToggle = document.getElementById("micToggle");
+        const statusText = document.getElementById("statusText");
+        const chatBox = document.getElementById("chatBox");
+        const personId = document.getElementById("personName").innerText;
+
+        micToggle.addEventListener("mousedown", startRecording);
+        micToggle.addEventListener("mouseup", stopRecording);
+
+        function startRecording() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        sendAudio(audioBlob);
+                    };
+
+                    mediaRecorder.start();
+                    statusText.innerText = "Recording...";
+                })
+                .catch(err => {     
+                    console.error("Mic access denied:", err);
+                    statusText.innerText = "Microphone access denied";
+                });
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+                statusText.innerText = "Processing...";
+            }
+        }
+
+        function sendAudio(audioBlob) {
+            const formData = new FormData();
+            formData.append("audio", audioBlob, "input.wav");
+            formData.append("person_id", personId);
+
+            fetch("/voice_input", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const userDiv = document.createElement("div");
+                userDiv.innerHTML = `<b>You:</b> ${data.transcription}`;
+                chatBox.appendChild(userDiv);
+
+                const aiDiv = document.createElement("div");
+                aiDiv.innerHTML = `<b>${personId}:</b> ${data.response}`;
+                chatBox.appendChild(aiDiv);
+
+                statusText.innerText = "Ready";
+            })
+            .catch(error => {
+                console.error("Error sending audio:", error);
+                statusText.innerText = "Error. Try again.";
+            });
+        }
+    </script>
+</body>
+</html>

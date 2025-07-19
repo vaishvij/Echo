@@ -8,6 +8,9 @@
 <body>
     <h2>Upload Audio</h2>
     <form action="/upload" method="post" enctype="multipart/form-data">
+        <label for="person_id">PERSON NAME</label>
+        <input type="text" name="person_id" required>
+        <label for="audio">UPLOAD AUDIO SAMPLE</label>
         <input type="file" name="audio" id="audio" accept="audio/*" required>
         <button type="submit">Upload & Play</button>
     </form>
