@@ -5,7 +5,6 @@ from utils.audio_processing import clone_voice_from_text
 from utils.audio_processing import synthesize_voice
 from utils.save_description import save_person_description
 from utils.prompting import generate_system_prompt, query_llm
-from utils.transcription import transcribe_audio
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -168,16 +167,13 @@ def voice_chat(person_id):
 @app.route('/voice_input', methods=['POST'])
 def voice_input():
     try:
-        audio_file = request.files['audio']
-        person_id = request.form.get('person_id')
-        print(f"Received audio for: {person_id}")
+        text_input = request.form.get("text")
+        person_id = request.form.get("person_id")
 
-        audio_path = os.path.join("uploads", "temp_input.wav")
-        audio_file.save(audio_path)
-        print("Audio saved.")
+        if not text_input or not person_id:
+            return jsonify({"error": "Missing text or person_id"}), 400
 
-        text_input = transcribe_audio(audio_path)
-        print(f"Transcribed text: {text_input}")
+        print(f"[INFO] Received text from client: {text_input} for {person_id}")
 
         system_prompt = generate_system_prompt(person_id)
         response_text = query_llm(system_prompt, text_input)
@@ -187,8 +183,8 @@ def voice_input():
         print(f"Audio response path: {audio_response_path}")
 
         return jsonify({
-            "text": response_text,
-            "audio_url": f"/static/audio_responses/{os.path.basename(audio_response_path)}"
+            "response": response_text,
+            "audio_url": f"/static/audio/{os.path.basename(audio_response_path)}"
         })
 
     except Exception as e:

@@ -8,4 +8,3 @@ demucs
 resemblyzer
 TTS==0.22.0
 requests
-faster_whisper

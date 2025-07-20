@@ -18,6 +18,21 @@
             <p>Tap and hold to speak</p>
         </div>
 
+        <div style="margin: 10px 0;">
+            <label for="languageSelect"><b>Select Language:</b></label>
+            <select id="languageSelect">
+                <option value="en-US">English (US)</option>
+                <option value="hi-IN">Hindi (India)</option>
+                <option value="es-ES">Spanish (Spain)</option>
+                <option value="fr-FR">French (France)</option>
+                <option value="de-DE">German (Germany)</option>
+                <option value="ja-JP">Japanese (Japan)</option>
+                <option value="zh-CN">Chinese (Mandarin)</option>
+                <option value="ar-SA">Arabic (Saudi Arabia)</option>
+                <!-- Add more as needed -->
+            </select>
+        </div>
+
         <div class="chatbox" id="chatBox">
             <!-- Messages will appear here -->
         </div>
@@ -28,76 +43,83 @@
         </footer>
     </div>
 
-
     <script>
-        let mediaRecorder;
-        let audioChunks = [];
-
-        const micToggle = document.getElementById("micToggle");
-        const statusText = document.getElementById("statusText");
-        const chatBox = document.getElementById("chatBox");
         const personId = document.getElementById("personName").innerText;
+        const micToggle = document.getElementById("micToggle");
+        const chatBox = document.getElementById("chatBox");
+        const statusText = document.getElementById("statusText");
+        const languageSelect = document.getElementById("languageSelect");
 
-        micToggle.addEventListener("mousedown", startRecording);
-        micToggle.addEventListener("mouseup", stopRecording);
+        let recognition;
+        let recognizing = false;
 
-        function startRecording() {
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(stream => {
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
+        if (!("webkitSpeechRecognition" in window)) {
+            statusText.innerText = "Speech Recognition not supported.";
+        } else {
+            recognition = new webkitSpeechRecognition();
+            recognition.lang = languageSelect.value;  // Default language
+            recognition.continuous = false;
+            recognition.interimResults = false;
 
-                    mediaRecorder.ondataavailable = event => {
-                        audioChunks.push(event.data);
-                    };
+            recognition.onstart = () => {
+                recognizing = true;
+                statusText.innerText = "Listening...";
+            };
 
-                    mediaRecorder.onstop = () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                        sendAudio(audioBlob);
-                    };
-
-                    mediaRecorder.start();
-                    statusText.innerText = "Recording...";
-                })
-                .catch(err => {     
-                    console.error("Mic access denied:", err);
-                    statusText.innerText = "Microphone access denied";
-                });
-        }
-
-        function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state !== "inactive") {
-                mediaRecorder.stop();
+            recognition.onresult = event => {
+                const transcript = event.results[0][0].transcript;
                 statusText.innerText = "Processing...";
-            }
-        }
 
-        function sendAudio(audioBlob) {
-            const formData = new FormData();
-            formData.append("audio", audioBlob, "input.wav");
-            formData.append("person_id", personId);
-
-            fetch("/voice_input", {
-                method: "POST",
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
                 const userDiv = document.createElement("div");
-                userDiv.innerHTML = `<b>You:</b> ${data.transcription}`;
+                userDiv.innerHTML = `<b>You:</b> ${transcript}`;
                 chatBox.appendChild(userDiv);
 
-                const aiDiv = document.createElement("div");
-                aiDiv.innerHTML = `<b>${personId}:</b> ${data.response}`;
-                chatBox.appendChild(aiDiv);
+                const formData = new FormData();
+                formData.append("text", transcript);
+                formData.append("person_id", personId);
 
-                statusText.innerText = "Ready";
-            })
-            .catch(error => {
-                console.error("Error sending audio:", error);
-                statusText.innerText = "Error. Try again.";
+                fetch("/voice_input", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    const aiDiv = document.createElement("div");
+                    aiDiv.innerHTML = `<b>${personId}:</b> ${data.response}`;
+                    chatBox.appendChild(aiDiv);
+
+                    const audio = new Audio(data.audio_url);
+                    audio.play();
+                    statusText.innerText = "Ready";
+                })
+                .catch(err => {
+                    console.error(err);
+                    statusText.innerText = "Error. Try again.";
+                });
+            };
+
+            recognition.onerror = e => {
+                console.error(e);
+                statusText.innerText = "Recognition error.";
+            };
+
+            recognition.onend = () => {
+                recognizing = false;
+            };
+
+            // Change recognition language on dropdown change
+            languageSelect.addEventListener("change", () => {
+                recognition.lang = languageSelect.value;
             });
         }
+
+        micToggle.addEventListener("click", () => {
+            if (recognizing) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        });
     </script>
 </body>
 </html>
