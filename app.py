@@ -1,10 +1,8 @@
 from flask import Flask, request, render_template, send_file, send_from_directory, jsonify, redirect, url_for, session
 import os
-from utils.audio_processing import process_audio
-from utils.audio_processing import clone_voice_from_text
-from utils.audio_processing import synthesize_voice
+from utils.audio_processing import process_audio, clone_voice_from_text, synthesize_voice
 from utils.save_description import save_person_description
-from utils.prompting import generate_system_prompt, query_llm
+from utils.prompting import generate_system_prompt, query_llm, query_llm_stream
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -67,6 +65,7 @@ def get_processed_audio(filename):
 def synthesize():
     text_input = request.form['text']
     person_id = request.form['person_id']
+    language = request.form.get('language', 'en')
 
     processed_path = os.path.join(PROCESSED_FOLDER,f"{person_id}.wav")
     embedding_path = processed_path.replace(".wav",".npy")
@@ -75,7 +74,7 @@ def synthesize():
     output_path = os.path.join(PROCESSED_FOLDER, output_filename)
 
     #Generate speech in cloned voice
-    clone_voice_from_text(text_input, processed_path, embedding_path, output_path)
+    clone_voice_from_text(text_input, processed_path, embedding_path, output_path, language=language)
 
     return f"""
         <h2>Input Text:</h2>
@@ -116,6 +115,7 @@ def save_description():
     return f"""
         <h3>Profile Saved for {person_id}!</h3>
         <a href="/start_chat/{person_id}">Start Chat</a> |
+        <a href="/voice_chat/{person_id}">Start Voice Chat</a> |
         <a href='/description'>Create Another</a> |
         <a href='/'>Home</a>
     """
@@ -169,6 +169,7 @@ def voice_input():
     try:
         text_input = request.form.get("text")
         person_id = request.form.get("person_id")
+        language = request.form.get("language", "en")
 
         if not text_input or not person_id:
             return jsonify({"error": "Missing text or person_id"}), 400
@@ -176,10 +177,18 @@ def voice_input():
         print(f"[INFO] Received text from client: {text_input} for {person_id}")
 
         system_prompt = generate_system_prompt(person_id)
-        response_text = query_llm(system_prompt, text_input)
+
+        if person_id not in chat_history:
+            chat_history[person_id] = []
+        history = chat_history[person_id]
+
+        response_text = query_llm(system_prompt, text_input, history)
         print(f"Response text: {response_text}")
 
-        audio_response_path = synthesize_voice(response_text, person_id)
+        chat_history[person_id].append({"role": "user", "content": text_input})
+        chat_history[person_id].append({"role": "assistant", "content": response_text})
+
+        audio_response_path = synthesize_voice(response_text, person_id, language=language)
         print(f"Audio response path: {audio_response_path}")
 
         return jsonify({

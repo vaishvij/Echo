@@ -1,5 +1,7 @@
 import subprocess
 import os
+import re
+import wave
 import shutil
 
 from resemblyzer import VoiceEncoder, preprocess_wav
@@ -71,31 +73,57 @@ def extract_speaker_embedding(enhanced_audio_path, save_embedding_path):
     np.save(save_embedding_path, embedding)
 
 
-def clone_voice_from_text(text_input, enhanced_audio_path, embedding_path, output_path):
-    #Load the saved speaker embedding
-    speaker_embedding = np.load(embedding_path)
+def clone_voice_from_text(text_input, enhanced_audio_path, output_path, language="en"):
+    """#Load the saved speaker embedding
+    #speaker_embedding = np.load(embedding_path)"""
 
     #Generate cloned voice audio file
     tts_model.tts_to_file(
         text = text_input,
         speaker_wav = enhanced_audio_path,
         file_path = output_path,
-        language="en"
+        language=language
     )
 
-def synthesize_voice(text_input, person_id):
-    # Define file paths
-    enhanced_audio_path = os.path.join("processed", f"{person_id}.wav")
-    embedding_path = os.path.join("processed", f"{person_id}.npy")
-    output_path = os.path.join("static", "audio", f"{person_id}_response.wav")
 
-    # Ensure paths exist
+def concatenate_wavs(input_paths, output_path):
+    data = []
+    params = None
+    for path in input_paths:
+        with wave.open(path, 'rb') as f:
+            if params is None:
+                params = f.getparams()
+            data.append(f.readframes(f.getnframes()))
+    with wave.open(output_path, 'wb') as f:
+        f.setparams(params)
+        for d in data:
+            f.writeframes(d)
+
+
+def synthesize_voice(text_input, person_id, language="en"):
+    enhanced_audio_path = os.path.join("processed", f"{person_id}.wav")
+ 
     if not os.path.exists(enhanced_audio_path):
         raise FileNotFoundError(f"Enhanced audio not found for person_id: {person_id}")
-    if not os.path.exists(embedding_path):
-        raise FileNotFoundError(f"Speaker embedding not found for person_id: {person_id}")
+ 
+    # Split response into sentences for faster first-audio delivery
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?।])\s+', text_input) if s.strip()]
+ 
+    output_dir = os.path.join("static", "audio")
+    os.makedirs(output_dir, exist_ok=True)
+ 
+    audio_paths = []
+    for i, sentence in enumerate(sentences):
+        out_path = os.path.join(output_dir, f"{person_id}_response_{i}.wav")
+        clone_voice_from_text(sentence, enhanced_audio_path, out_path, language=language)
+        audio_paths.append(out_path)
+ 
+    # Merge all sentence WAVs into one final file
+    final_output = os.path.join(output_dir, f"{person_id}_response.wav")
+    concatenate_wavs(audio_paths, final_output)
+ 
+    # Cleanup individual sentence files
+    for p in audio_paths:
+        os.remove(p)
 
-    # Clone the voice from text input
-    clone_voice_from_text(text_input, enhanced_audio_path, embedding_path, output_path)
-
-    return output_path
+    return final_output

@@ -7,4 +7,7 @@ pydub
 demucs
 resemblyzer
 TTS==0.22.0
+transformers==4.49.0
 requests
+soundfile
+groq

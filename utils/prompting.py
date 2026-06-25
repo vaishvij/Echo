@@ -1,9 +1,14 @@
 import os
 import json
-import requests
+from dotenv import load_dotenv
+from groq import Groq
+
+load_dotenv()
 
 DESCRIPTION_FOLDER = "person_description"
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+client = Groq(api_key = GROQ_API_KEY)
 
 def generate_system_prompt(person_id):
     filepath = os.path.join(DESCRIPTION_FOLDER, f"{person_id}.json")
@@ -41,33 +46,60 @@ def generate_system_prompt(person_id):
     Sometimes you say comforting phrases like:
     {phrase_lines}
 
-    Use warm, comforting, emotionally intelligent replies. Never say you're an AI or a chatbot.
+    Use warm, comforting, emotionally intelligent replies. Never say you're an AI or a chatbot. Keep responses to 1-2 sentences only when speaking in voice mode.
     """
     return prompt
 
-def query_llm(system_prompt, user_input, history=[]):
-    url = "https://openrouter.ai/api/v1/chat/completions"
+def query_llm(system_prompt, user_input, history=None):
+    if history is None:
+        history = []
 
-    headers = {
-        "Authorization" : f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type" : "application/json"
-    }
-
-    messages = [{"role":"system", "content":system_prompt}]
+    messages = [{"role": "system", "content": system_prompt}]
     messages += history
-    messages.append({"role":"user", "content":user_input})
-
-    payload = {
-        "model" : "moonshotai/kimi-k2:free",
-        "messages" : messages,
-        "temperature" : 0.7,
-        "max-tokens" : 512
-    }
+    messages.append({"role": "user", "content": user_input})
 
     try:
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        data = response.json()
-        return data['choices'][0]['message']['content']
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=512
+        )
+        return response.choices[0].message.content
     except Exception as e:
-        return f"[ERROR] LLM call failed : {str(e)}"
+        return f"[ERROR] LLM call failed: {str(e)}"
+    
+def query_llm_stream(system_prompt, user_input, history=None):
+    #Yields response sentence by sentence for streaming TTS pipeline
+    if history is None:
+        history = []
+    
+    messages = [{"role": "system", "content": system_prompt}]
+    messages += history
+    messages.append({"role": "user", "content": user_input})
+
+    try:
+        stream = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=512,
+            stream=True
+        )
+
+        buffer = ""
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content or ""
+            buffer += delta
+            # Yield complete sentences as they form (includes Hindi danda)
+            while any(p in buffer for p in [".", "!", "?", "।"]):
+                for punct in [".", "!", "?", "।"]:
+                    idx = buffer.find(punct)
+                    if idx != -1:
+                        yield buffer[:idx + 1].strip()
+                        buffer = buffer[idx + 1:]
+                        break
+        if buffer.strip():
+            yield buffer.strip()
+    except Exception as e:
+        yield f"[ERROR] Streaming failed: {str(e)}"
